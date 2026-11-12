@@ -42,8 +42,9 @@ const worthReminders = [
 
 final _rng = Random();
 
-String worthForToday() {
-  final now = DateTime.now();
+String worthForToday() => worthFor(DateTime.now());
+
+String worthFor(DateTime now) {
   final dayOfYear = now.difference(DateTime(now.year)).inDays;
   return worthReminders[dayOfYear % worthReminders.length];
 }

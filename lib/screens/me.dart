@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
+import '../reminders.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -40,6 +41,14 @@ class MeScreen extends StatelessWidget {
                 ],
               ),
             ),
+            IconButton.filledTonal(
+              tooltip: 'Reminders',
+              onPressed: () => showAndySheet(context, const _RemindersSheet()),
+              icon: Icon(s.remindersOn
+                  ? Icons.notifications_active_rounded
+                  : Icons.notifications_off_outlined),
+            ),
+            const SizedBox(width: 6),
             IconButton.filledTonal(
               tooltip: 'Settings',
               onPressed: () => showAndySheet(context, const _SettingsSheet()),
@@ -466,6 +475,63 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           },
           child: const Text('Save'),
         ),
+      ],
+    );
+  }
+}
+
+class _RemindersSheet extends StatelessWidget {
+  const _RemindersSheet();
+
+  Future<void> _toggle(BuildContext context, AppState s, bool on) async {
+    if (!on) return s.setReminders(false);
+    final messenger = ScaffoldMessenger.of(context);
+    final granted = await reminders.requestPermission();
+    s.setReminders(granted);
+    if (!granted) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text(
+              'Notifications are blocked for Andy. Allow them in your phone settings.')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AndyScope.of(context);
+    final t = Theme.of(context);
+    return SheetBody(
+      title: 'Reminders',
+      children: [
+        if (!reminders.available)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Reminders work in the phone app. They are not available in this preview.',
+              style: t.textTheme.bodyMedium
+                  ?.copyWith(color: t.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Let Andy nudge me', style: t.textTheme.titleMedium),
+          subtitle: const Text('Only when something actually needs you'),
+          value: s.remindersOn,
+          onChanged: reminders.available
+              ? (v) => _toggle(context, s, v)
+              : null,
+        ),
+        const Divider(),
+        for (final e in reminderCategories.entries)
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            title: Text(e.value.$1, style: t.textTheme.bodyLarge),
+            subtitle: Text(e.value.$2),
+            value: s.remindersOn && !s.remindersOff.contains(e.key),
+            onChanged: s.remindersOn && reminders.available
+                ? (v) => s.setReminderCategory(e.key, v)
+                : null,
+          ),
       ],
     );
   }

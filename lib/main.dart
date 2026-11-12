@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'reminders.dart';
 import 'screens/food.dart';
 import 'screens/me.dart';
 import 'screens/move.dart';
@@ -9,9 +10,13 @@ import 'screens/today.dart';
 import 'state.dart';
 import 'theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(AndyApp(state: AppState()..load()));
+  final state = AppState()..onChanged = reminders.sync;
+  runApp(AndyApp(state: state));
+  await Future.wait([state.load(), reminders.init()]);
+  // Refresh the week of reminders on every launch.
+  reminders.sync(state);
 }
 
 class AndyApp extends StatelessWidget {

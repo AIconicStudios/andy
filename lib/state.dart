@@ -18,6 +18,11 @@ class AppState extends ChangeNotifier {
   int weeklyMinutesGoal = 150;
   int waterGoal = 8;
   ThemeMode themeMode = ThemeMode.system;
+  bool remindersOn = true;
+  Set<String> remindersOff = {}; // categories switched off
+
+  /// Called after every change, so reminders can be rescheduled.
+  void Function(AppState)? onChanged;
 
   List<FoodEntry> foods = [];
   List<Workout> workouts = [];
@@ -41,6 +46,8 @@ class AppState extends ChangeNotifier {
         weeklyMinutesGoal = j['weeklyMinutesGoal'] ?? 150;
         waterGoal = j['waterGoal'] ?? 8;
         themeMode = ThemeMode.values[j['themeMode'] ?? 0];
+        remindersOn = j['remindersOn'] ?? true;
+        remindersOff = Set<String>.from(j['remindersOff'] ?? []);
         List<T> list<T>(String k, T Function(Map<String, dynamic>) f) =>
             ((j[k] ?? []) as List)
                 .map((e) => f(Map<String, dynamic>.from(e)))
@@ -73,6 +80,8 @@ class AppState extends ChangeNotifier {
         'weeklyMinutesGoal': weeklyMinutesGoal,
         'waterGoal': waterGoal,
         'themeMode': themeMode.index,
+        'remindersOn': remindersOn,
+        'remindersOff': remindersOff.toList(),
         'foods': foods.map((e) => e.toJson()).toList(),
         'workouts': workouts.map((e) => e.toJson()).toList(),
         'people': people.map((e) => e.toJson()).toList(),
@@ -88,6 +97,17 @@ class AppState extends ChangeNotifier {
   void _changed() {
     notifyListeners();
     _save();
+    onChanged?.call(this);
+  }
+
+  void setReminders(bool on) {
+    remindersOn = on;
+    _changed();
+  }
+
+  void setReminderCategory(String cat, bool on) {
+    on ? remindersOff.remove(cat) : remindersOff.add(cat);
+    _changed();
   }
 
   // ---- setup -------------------------------------------------------------

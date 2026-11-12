@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
+import '../reminders.dart';
 import '../state.dart';
 import '../widgets.dart';
 
@@ -22,9 +23,13 @@ class _OnboardingState extends State<Onboarding> {
     super.dispose();
   }
 
-  void _start() {
+  Future<void> _start() async {
     final goal = int.tryParse(_goal.text) ?? 2200;
-    AndyScope.of(context).finishOnboarding(
+    final s = AndyScope.of(context);
+    if (reminders.available) {
+      s.remindersOn = await reminders.requestPermission();
+    }
+    s.finishOnboarding(
       _name.text.trim().isEmpty ? 'friend' : _name.text,
       goal.clamp(1000, 6000),
     );
@@ -50,8 +55,9 @@ class _OnboardingState extends State<Onboarding> {
                   const SizedBox(height: 14),
                   Text(
                     'I keep an eye on four things: what you eat, how you move, '
-                    'the people you love, and you. And on the days you forget '
-                    'what you are worth, I will remind you.',
+                    'the people you love, and you. I will nudge you when one '
+                    'slips, and on the days you forget what you are worth, I '
+                    'will remind you.',
                     style: t.textTheme.bodyLarge?.copyWith(
                         color: t.colorScheme.onSurfaceVariant, height: 1.45),
                   ),
