@@ -295,10 +295,11 @@ class AppState extends ChangeNotifier {
     _changed();
   }
 
-  void updateMemory(String id, String title, String note) {
+  void updateMemory(String id, String title, String note, DateTime? remindAt) {
     final m = memories.firstWhere((m) => m.id == id);
     m.title = title;
     m.note = note;
+    m.remindAt = remindAt;
     _changed();
   }
 

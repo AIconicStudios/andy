@@ -34,15 +34,26 @@ Point Andy at a book, your TV, a gift, anything, and save a note about it.
 Point at it again later and the memory pops up. Open it from the focus icon
 on the **Today** tab.
 
-Recognition runs entirely on the phone with Google ML Kit (free, no account,
-no photo leaves the device). Andy combines three clues: the kind of object,
-any words printed on it, and its colours. Things with text on them (book
-covers, boxes, branded devices) are told apart reliably; plain objects are
-matched on kind and colour, so two near-identical plain things can be
-confused. "Not this" on the pop-up lets you correct him, and every confirmed
-sighting makes the next one easier.
+Only a name is required. A note is optional, and you can set an **alarm**
+on the thing instead (or as well): pick a date and time and Andy notifies you
+then, even if all other nudges are switched off.
 
-Packages: `camera`, `google_mlkit_image_labeling`,
+Recognition runs entirely on the phone with free models; no photo leaves the
+device. Andy combines:
+
+- a **visual fingerprint** from a MobileNet V3 image embedder (TensorFlow
+  Lite, bundled in `assets/`), taken at four zoom levels of every photo.
+  Any zoom of a new photo can match any zoom of a saved one, which is how a
+  close-up matches a shot from across the room;
+- **words printed on the thing** (ML Kit text recognition), which confirm a
+  match or hold back two lookalikes with different titles;
+- its colours, and the kind of object (ML Kit labelling) as a fallback.
+
+When Andy is confident he pops the memory up. When something only resembles
+a saved thing, or two saved things are close, he says "this could be…" and
+lets you pick; every pick teaches him another view of it.
+
+Packages: `camera`, `tflite_flutter`, `google_mlkit_image_labeling`,
 `google_mlkit_text_recognition`, `image`, `path_provider`.
 
 ## Run

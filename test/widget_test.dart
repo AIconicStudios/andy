@@ -1,4 +1,5 @@
 import 'package:andy/main.dart';
+import 'package:andy/memories.dart';
 import 'package:andy/reminders.dart';
 import 'package:andy/state.dart';
 import 'package:material_ui/material_ui.dart';
@@ -114,6 +115,25 @@ void main() {
           false);
       s.setReminders(false);
       expect(planReminders(s, morning), isEmpty);
+    });
+
+    test('an alarm on a memory fires exactly, even with nudges off', () {
+      final at = morning.add(const Duration(days: 30, hours: 3));
+      s.addMemory(Memory(
+          id: 'm',
+          title: 'Passport',
+          note: '',
+          photo: '',
+          created: morning,
+          signatures: [],
+          remindAt: at));
+      s.setReminders(false);
+      final plan = planReminders(s, morning);
+      expect(plan.single.title, 'Passport');
+      expect(plan.single.when, at);
+      expect(plan.single.exact, true);
+      s.setReminders(true);
+      expect(planReminders(s, morning).length, lessThanOrEqualTo(maxPending));
     });
   });
 }

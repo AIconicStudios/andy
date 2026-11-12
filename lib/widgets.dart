@@ -314,6 +314,17 @@ Future<T?> showAndySheet<T>(BuildContext context, Widget child) =>
       builder: (_) => child,
     );
 
+const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const _months = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+/// "Fri 14 Nov, 09:00"
+String whenText(DateTime t) =>
+    '${_weekdays[t.weekday - 1]} ${t.day} ${_months[t.month - 1]}, '
+    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
 String ago(DateTime t) {
   final d = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day)
       .difference(DateTime(t.year, t.month, t.day))

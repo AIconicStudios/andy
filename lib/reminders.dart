@@ -20,15 +20,23 @@ const reminderCategories = {
 };
 
 class PlannedReminder {
-  PlannedReminder(this.id, this.when, this.title, this.body);
+  PlannedReminder(this.id, this.when, this.title, this.body,
+      {this.exact = false});
   final int id;
   final DateTime when;
   final String title;
   final String body;
+
+  /// An alarm the user set for a specific time, so it should not drift.
+  final bool exact;
 }
 
 const _days = 7;
 const _maxPeople = 12;
+const _maxMemoryAlarms = 20;
+
+/// iOS keeps at most 64 pending notifications per app.
+const maxPending = 64;
 
 /// Works out every reminder for the coming week from what Andy knows now.
 ///
@@ -36,10 +44,10 @@ const _maxPeople = 12;
 /// re-run whenever the data changes: log lunch and today's lunch nudge
 /// disappears; message Mum and her reminder moves to the next due date.
 List<PlannedReminder> planReminders(AppState s, DateTime now) {
-  if (!s.remindersOn || !s.onboarded) return [];
+  if (!s.onboarded) return [];
   final out = <PlannedReminder>[];
   final today = dayOf(now);
-  bool on(String cat) => !s.remindersOff.contains(cat);
+  bool on(String cat) => s.remindersOn && !s.remindersOff.contains(cat);
 
   void add(int id, DateTime day, int h, int m, String title, String body) {
     final when = DateTime(day.year, day.month, day.day, h, m);
@@ -113,10 +121,31 @@ List<PlannedReminder> planReminders(AppState s, DateTime now) {
     }
   }
 
+  // Alarms set on memories. These are promises, so they go first and the
+  // routine nudges give way if the phone's pending limit is reached.
+  final alarms = <PlannedReminder>[];
+  final due = s.memories
+      .where((m) => m.remindAt != null && m.remindAt!.isAfter(now))
+      .toList()
+    ..sort((a, b) => a.remindAt!.compareTo(b.remindAt!));
+  var a = 0;
+  for (final m in due.take(_maxMemoryAlarms)) {
+    alarms.add(PlannedReminder(
+      200 + a++,
+      m.remindAt!,
+      m.title,
+      m.note.isEmpty ? 'You asked me to remind you about this.' : m.note,
+      exact: true,
+    ));
+  }
+
   // If the app goes unopened for a week the schedule runs dry, so say so.
-  add(99, today.add(const Duration(days: _days)), 9, 0, 'Andy here',
-      'I have gone quiet because you have not opened me. Come back. No guilt, just a fresh day.');
-  return out;
+  if (s.remindersOn) {
+    add(99, today.add(const Duration(days: _days)), 9, 0, 'Andy here',
+        'I have gone quiet because you have not opened me. Come back. No guilt, just a fresh day.');
+  }
+  out.sort((x, y) => x.when.compareTo(y.when));
+  return [...alarms, ...out.take(maxPending - alarms.length)];
 }
 
 /// Schedules [planReminders] as local notifications. Everything stays on the
@@ -191,6 +220,11 @@ class Reminders {
         ),
         iOS: DarwinNotificationDetails(),
       );
+      final exactOk = await _plugin
+              .resolvePlatformSpecificImplementation<
+                  AndroidFlutterLocalNotificationsPlugin>()
+              ?.canScheduleExactNotifications() ??
+          false;
       for (final r in planReminders(s, DateTime.now())) {
         await _plugin.zonedSchedule(
           id: r.id,
@@ -198,9 +232,11 @@ class Reminders {
           body: r.body,
           scheduledDate: tz.TZDateTime.from(r.when, tz.local),
           notificationDetails: details,
-          // Inexact needs no special alarm permission; a few minutes of
-          // drift does not matter for a nudge.
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          // Routine nudges may drift a few minutes; alarms the user set on
+          // a memory fire on time where the phone allows it.
+          androidScheduleMode: r.exact && exactOk
+              ? AndroidScheduleMode.exactAllowWhileIdle
+              : AndroidScheduleMode.inexactAllowWhileIdle,
         );
       }
     } catch (e) {

@@ -91,18 +91,29 @@ class _LensScreenState extends State<LensScreen> with WidgetsBindingObserver {
       final sighting = await lens.look(shot.path);
       if (!mounted) return;
       final s = AndyScope.of(context);
-      final match = bestMatch(s.memories, sighting.signature);
-      if (match == null) {
+      final found = recognise(s.memories, sighting.signature);
+      if (found.isEmpty) {
         await showAndySheet(context, _SaveSheet(sighting: sighting));
-      } else {
+      } else if (isClearWinner(found)) {
         final right = await showAndySheet<bool>(
-            context, _RecallSheet(memory: match.memory, fromLens: true));
+            context, _RecallSheet(memory: found.first.memory, fromLens: true));
         if (!mounted) return;
         if (right == false) {
           await showAndySheet(context, _SaveSheet(sighting: sighting));
         } else if (right == true) {
-          // Each confirmed sighting teaches Andy another angle or light.
-          s.reinforceMemory(match.memory.id, sighting.signature);
+          // Each confirmed sighting teaches Andy another angle or distance.
+          s.reinforceMemory(found.first.memory.id, sighting.signature);
+        }
+      } else {
+        // Not sure enough to announce it: offer the lookalikes instead.
+        final pick = await showAndySheet<Object>(
+            context, _MaybeSheet(found: found, sighting: sighting));
+        if (!mounted) return;
+        if (pick is Memory) {
+          s.reinforceMemory(pick.id, sighting.signature);
+          await showAndySheet(context, _RecallSheet(memory: pick));
+        } else if (pick == false) {
+          await showAndySheet(context, _SaveSheet(sighting: sighting));
         }
       }
     } catch (e) {
@@ -209,7 +220,7 @@ class _LensScreenState extends State<LensScreen> with WidgetsBindingObserver {
                           child: Text(
                             _busy
                                 ? 'Looking…'
-                                : 'Fill the frame with one thing, then tap',
+                                : 'Centre one thing, near or far, then tap',
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600),
@@ -301,15 +312,41 @@ class _RecallSheet extends StatelessWidget {
       children: [
         SizedBox(width: double.infinity, child: MemoryPhoto(memory)),
         const SizedBox(height: 16),
-        Text(fromLens ? 'YOU TOLD ME' : 'MEMORY',
+        Text(fromLens && memory.note.isNotEmpty ? 'YOU TOLD ME' : 'MEMORY',
             style: t.textTheme.labelSmall?.copyWith(
                 color: AndyColors.brand,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2)),
         const SizedBox(height: 6),
-        Text(memory.note,
+        Text(
+            memory.note.isEmpty
+                ? (fromLens ? 'I know this one.' : 'Saved so I recognise it.')
+                : memory.note,
             style: t.textTheme.titleLarge
                 ?.copyWith(height: 1.35, fontWeight: FontWeight.w600)),
+        if (memory.remindAt != null) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                  memory.remindAt!.isAfter(DateTime.now())
+                      ? Icons.alarm_rounded
+                      : Icons.alarm_on_rounded,
+                  size: 20,
+                  color: AndyColors.brand),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  memory.remindAt!.isAfter(DateTime.now())
+                      ? 'Alarm set for ${whenText(memory.remindAt!)}'
+                      : 'Reminded you on ${whenText(memory.remindAt!)}',
+                  style: t.textTheme.bodyLarge
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 8),
         Text('Saved ${ago(memory.created).toLowerCase()}',
             style: t.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
@@ -373,6 +410,71 @@ class _RecallSheet extends StatelessWidget {
   }
 }
 
+/// Andy is not certain: show the lookalikes and let the user decide.
+/// Pops with the chosen [Memory], or `false` for "none of these".
+class _MaybeSheet extends StatelessWidget {
+  const _MaybeSheet({required this.found, required this.sighting});
+  final List<MemoryMatch> found;
+  final Sighting sighting;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context);
+    final cs = t.colorScheme;
+    return SheetBody(
+      title: found.length == 1 ? 'This could be…' : 'This could be one of these',
+      children: [
+        Text('I am not certain. Tap the right one and I will learn it better.',
+            style:
+                t.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+        const SizedBox(height: 14),
+        for (final m in found)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Panel(
+              padding: EdgeInsets.zero,
+              child: InkWell(
+                onTap: () => Navigator.pop(context, m.memory),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      MemoryPhoto(m.memory, size: 64),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(m.memory.title,
+                                style: t.textTheme.titleMedium),
+                            Text('${m.percent}% alike',
+                                style: t.textTheme.bodySmall
+                                    ?.copyWith(color: cs.onSurfaceVariant)),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded,
+                          color: cs.onSurfaceVariant),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 6),
+        OutlinedButton(
+          style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 52),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16))),
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('None of these. Save as new'),
+        ),
+      ],
+    );
+  }
+}
+
 /// Save a new memory for a sighting, or edit the words of an existing one.
 class _SaveSheet extends StatefulWidget {
   const _SaveSheet({this.sighting, this.editing})
@@ -387,6 +489,7 @@ class _SaveSheet extends StatefulWidget {
 class _SaveSheetState extends State<_SaveSheet> {
   late final TextEditingController _title, _note;
   bool _saving = false;
+  DateTime? _remindAt;
 
   @override
   void initState() {
@@ -396,6 +499,37 @@ class _SaveSheetState extends State<_SaveSheet> {
         text: widget.editing?.title ??
             (labels.isEmpty ? '' : labels.keys.first));
     _note = TextEditingController(text: widget.editing?.note ?? '');
+    _remindAt = widget.editing?.remindAt;
+  }
+
+  DateTime get _defaultAlarm {
+    final t = DateTime.now().add(const Duration(days: 1));
+    return DateTime(t.year, t.month, t.day, 9);
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final at = _remindAt ?? _defaultAlarm;
+    final d = await showDatePicker(
+      context: context,
+      initialDate: at.isBefore(now) ? now : at,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 365 * 3)),
+    );
+    if (d != null) {
+      setState(() =>
+          _remindAt = DateTime(d.year, d.month, d.day, at.hour, at.minute));
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final at = _remindAt ?? _defaultAlarm;
+    final t = await showTimePicker(
+        context: context, initialTime: TimeOfDay.fromDateTime(at));
+    if (t != null) {
+      setState(() => _remindAt =
+          DateTime(at.year, at.month, at.day, t.hour, t.minute));
+    }
   }
 
   @override
@@ -405,8 +539,8 @@ class _SaveSheetState extends State<_SaveSheet> {
     super.dispose();
   }
 
-  bool get _valid =>
-      _title.text.trim().isNotEmpty && _note.text.trim().isNotEmpty && !_saving;
+  // Only a name is required: a note and an alarm are both optional.
+  bool get _valid => _title.text.trim().isNotEmpty && !_saving;
 
   Future<void> _save() async {
     setState(() => _saving = true);
@@ -414,7 +548,8 @@ class _SaveSheetState extends State<_SaveSheet> {
     final nav = Navigator.of(context);
     final editing = widget.editing;
     if (editing != null) {
-      s.updateMemory(editing.id, _title.text.trim(), _note.text.trim());
+      s.updateMemory(
+          editing.id, _title.text.trim(), _note.text.trim(), _remindAt);
     } else {
       final id = newId();
       final photo = await lens.keepPhoto(id, widget.sighting!.thumbnail);
@@ -425,6 +560,7 @@ class _SaveSheetState extends State<_SaveSheet> {
         photo: photo,
         created: DateTime.now(),
         signatures: [widget.sighting!.signature],
+        remindAt: _remindAt,
       ));
     }
     nav.pop();
@@ -453,17 +589,49 @@ class _SaveSheetState extends State<_SaveSheet> {
         const SizedBox(height: 12),
         TextField(
           controller: _note,
-          autofocus: true,
-          minLines: 3,
-          maxLines: 6,
+          minLines: 2,
+          maxLines: 5,
           textCapitalization: TextCapitalization.sentences,
           decoration: const InputDecoration(
-            labelText: 'What should I remember about it?',
+            labelText: 'Note (optional)',
             alignLabelWithHint: true,
-            hintText: 'Who gave it to you, what it taught you, why it matters.',
+            hintText: 'Leave empty if the name is enough.',
           ),
-          onChanged: (_) => setState(() {}),
         ),
+        const SizedBox(height: 4),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: const Icon(Icons.alarm_rounded),
+          title: const Text('Set an alarm for this'),
+          subtitle: Text(_remindAt == null
+              ? 'I will notify you at a date and time you choose'
+              : _remindAt!.isBefore(DateTime.now())
+                  ? 'That time has passed. Pick a new one.'
+                  : whenText(_remindAt!)),
+          value: _remindAt != null,
+          onChanged: (on) =>
+              setState(() => _remindAt = on ? _defaultAlarm : null),
+        ),
+        if (_remindAt != null)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickDate,
+                  icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                  label: Text(whenText(_remindAt!).split(',').first),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickTime,
+                  icon: const Icon(Icons.schedule_rounded, size: 18),
+                  label: Text(whenText(_remindAt!).split(', ').last),
+                ),
+              ),
+            ],
+          ),
         const SizedBox(height: 18),
         FilledButton(
           onPressed: _valid ? _save : null,
@@ -525,7 +693,21 @@ class _MemoriesScreenState extends State<MemoriesScreen> {
                               children: [
                                 Text(m.title, style: t.textTheme.titleMedium),
                                 const SizedBox(height: 2),
-                                Text(m.note,
+                                Text(
+                                    [
+                                      if (m.remindAt != null &&
+                                          m.remindAt!.isAfter(DateTime.now()))
+                                        '⏰ ${whenText(m.remindAt!)}',
+                                      if (m.note.isNotEmpty) m.note,
+                                    ].join('  ·  ').isEmpty
+                                        ? 'Saved ${ago(m.created).toLowerCase()}'
+                                        : [
+                                            if (m.remindAt != null &&
+                                                m.remindAt!
+                                                    .isAfter(DateTime.now()))
+                                              '⏰ ${whenText(m.remindAt!)}',
+                                            if (m.note.isNotEmpty) m.note,
+                                          ].join('  ·  '),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     style: t.textTheme.bodyMedium?.copyWith(
