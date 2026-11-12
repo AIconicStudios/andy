@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'memories.dart';
 import 'models.dart';
 
 /// Everything Andy knows, persisted on the device as one JSON document.
@@ -29,6 +30,7 @@ class AppState extends ChangeNotifier {
   List<Person> people = [];
   List<Habit> habits = [];
   List<Proof> proofs = [];
+  List<Memory> memories = []; // newest first
   Set<String> habitDone = {}; // "<dateKey>|<habitId>"
   Map<String, int> mood = {}; // dateKey -> 1..5
   Map<String, int> water = {}; // dateKey -> glasses
@@ -57,6 +59,7 @@ class AppState extends ChangeNotifier {
         people = list('people', Person.fromJson);
         habits = list('habits', Habit.fromJson);
         proofs = list('proofs', Proof.fromJson);
+        memories = list('memories', Memory.fromJson);
         habitDone = Set<String>.from(j['habitDone'] ?? []);
         mood = Map<String, int>.from(j['mood'] ?? {});
         water = Map<String, int>.from(j['water'] ?? {});
@@ -87,6 +90,7 @@ class AppState extends ChangeNotifier {
         'people': people.map((e) => e.toJson()).toList(),
         'habits': habits.map((e) => e.toJson()).toList(),
         'proofs': proofs.map((e) => e.toJson()).toList(),
+        'memories': memories.map((e) => e.toJson()).toList(),
         'habitDone': habitDone.toList(),
         'mood': mood,
         'water': water,
@@ -281,6 +285,33 @@ class AppState extends ChangeNotifier {
 
   void removeProof(String id) {
     proofs.removeWhere((p) => p.id == id);
+    _changed();
+  }
+
+  // ---- memories ----------------------------------------------------------
+
+  void addMemory(Memory m) {
+    memories.insert(0, m);
+    _changed();
+  }
+
+  void updateMemory(String id, String title, String note) {
+    final m = memories.firstWhere((m) => m.id == id);
+    m.title = title;
+    m.note = note;
+    _changed();
+  }
+
+  void removeMemory(String id) {
+    memories.removeWhere((m) => m.id == id);
+    _changed();
+  }
+
+  /// Adds another confirmed sighting so the thing is recognised more easily.
+  void reinforceMemory(String id, Signature seen) {
+    final m = memories.firstWhere((m) => m.id == id);
+    if (m.signatures.length >= maxSignaturesPerMemory) return;
+    m.signatures.add(seen);
     _changed();
   }
 

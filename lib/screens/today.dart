@@ -4,6 +4,7 @@ import '../andy_brain.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'lens.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key, required this.onGo});
@@ -42,6 +43,12 @@ class _TodayScreenState extends State<TodayScreen> {
                   Text(s.name, style: t.textTheme.headlineSmall),
                 ],
               ),
+            ),
+            IconButton.filledTonal(
+              tooltip: 'Memory lens',
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const LensScreen())),
+              icon: const Icon(Icons.center_focus_strong_rounded),
             ),
           ],
         ),
@@ -169,6 +176,51 @@ class _TodayScreenState extends State<TodayScreen> {
                   style: t.textTheme.bodyMedium
                       ?.copyWith(color: cs.onSurfaceVariant)),
             ],
+          ),
+        ),
+
+        const SectionTitle('Memory lens'),
+        Panel(
+          padding: EdgeInsets.zero,
+          child: InkWell(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const LensScreen())),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AndyColors.brand.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.center_focus_strong_rounded,
+                        color: AndyColors.brand),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Point me at something',
+                            style: t.textTheme.titleMedium),
+                        Text(
+                          s.memories.isEmpty
+                              ? 'A book, your TV, a gift. Tell me what it means and I will remind you next time.'
+                              : '${s.memories.length} ${s.memories.length == 1 ? 'memory' : 'memories'} saved. Point again to bring one back.',
+                          style: t.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: cs.onSurfaceVariant),
+                ],
+              ),
+            ),
           ),
         ),
 

@@ -28,6 +28,23 @@ server and nothing to pay for. Packages used, all free and open source:
 `flutter_local_notifications`, `timezone`, `flutter_timezone`,
 `shared_preferences`.
 
+## Memory lens
+
+Point Andy at a book, your TV, a gift, anything, and save a note about it.
+Point at it again later and the memory pops up. Open it from the focus icon
+on the **Today** tab.
+
+Recognition runs entirely on the phone with Google ML Kit (free, no account,
+no photo leaves the device). Andy combines three clues: the kind of object,
+any words printed on it, and its colours. Things with text on them (book
+covers, boxes, branded devices) are told apart reliably; plain objects are
+matched on kind and colour, so two near-identical plain things can be
+confused. "Not this" on the pop-up lets you correct him, and every confirmed
+sighting makes the next one easier.
+
+Packages: `camera`, `google_mlkit_image_labeling`,
+`google_mlkit_text_recognition`, `image`, `path_provider`.
+
 ## Run
 
 ```bash
@@ -50,6 +67,8 @@ The iOS build needs a Mac with Xcode.
 ## Layout
 
 - `lib/state.dart` — all data, persistence and the life score
+- `lib/memories.dart` — memory model and the matching rules
+- `lib/lens_engine.dart` — camera photo to recognisable clues
 - `lib/reminders.dart` — what gets notified and when
 - `lib/andy_brain.dart` — Andy's voice: worth reminders and nudge rules
 - `lib/screens/` — one file per tab

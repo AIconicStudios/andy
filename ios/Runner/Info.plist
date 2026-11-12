@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Andy uses the camera to recognise things you have saved a memory about.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Andy</string>
 	<key>CFBundleExecutable</key>
