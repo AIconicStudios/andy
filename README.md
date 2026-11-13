@@ -73,11 +73,22 @@ a half before repeating.
 ## Daily puzzle
 
 One fill-in-the-blanks word a day, hangman style, with a dictionary meaning
-as the clue and about a third of the letters filled in. You get three wrong
-letters; the third ends it and shows the answer. Progress is kept for the
-day, solving on consecutive days builds a streak, and the solved word can be
-bookmarked. The answer is never that day's word of the day. Find it under
-the word of the day on the Today tab.
+as the clue. You get three wrong letters; the third ends it and shows the
+answer. Three difficulty levels: **Gentle** fills in a third of the letters,
+**Hard** (the default) fills in one, **Brutal** fills in none. Clues never
+give the answer away: any word in the meaning that shares a root with the
+answer is blanked out, and the example sentence is held back until the end.
+
+Progress is kept for the day, solving on consecutive days builds a streak,
+and the solved word can be bookmarked. The answer is never that day's word
+of the day. An 11:00 reminder nudges you on days you have not played; switch
+it off from the puzzle's settings or under Reminders.
+
+## Themes
+
+Eight colour themes (Ember, Ocean, Forest, Grape, Rose, Gold, Lagoon,
+Slate), light, dark or automatic mode, and an optional true-black dark
+background. Change them from the palette icon on the **Me** tab.
 
 ## Brain alarm
 

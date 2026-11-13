@@ -48,7 +48,20 @@ void main() {
       final g = p.game;
       expect(g.word, isNot(dict.wordOfTheDay(day)!.word));
       expect(RegExp(r'^[a-z]+$').hasMatch(g.word), true);
-      expect(g.given, isNotEmpty);
+      expect(g.given.length, 1); // hard is the default
+      expect(dailyPuzzle(dict, day, '', level: 2)!.game.given, isEmpty);
+      expect(dailyPuzzle(dict, day, '', level: 0)!.game.given.length,
+          greaterThanOrEqualTo(1));
+      // The clue must not contain the answer or an obvious relative of it.
+      final clue = p.clue.definition.toLowerCase();
+      expect(clue, isNotEmpty);
+      expect(p.clue.example, isEmpty);
+      for (final token in RegExp(r'[a-z]+').allMatches(clue)) {
+        final w = token[0]!;
+        if (w.length < 4) continue;
+        expect(g.word.startsWith(w.substring(0, 4)), false,
+            reason: '"$w" gives away "${g.word}"');
+      }
       expect(g.over, false, reason: 'must not start solved: ${g.word}');
       expect(g.slots.where((c) => c == null).length, greaterThanOrEqualTo(2));
       expect(p.entry.senses.first.definition, isNotEmpty);
@@ -56,6 +69,12 @@ void main() {
     // Stable within a day.
     expect(dailyPuzzle(dict, start, '')!.game.given,
         dailyPuzzle(dict, DateTime(2026, 11, 13, 22), '')!.game.given);
+  });
+
+  test('clues blank out relatives of the answer', () {
+    final clue = clueFor(dict.lookup('merciless')!);
+    expect(clue.definition, isNot(contains('mercy')));
+    expect(clue.definition, contains('•••'));
   });
 
   test('progress is kept for the day and wins build a streak', () async {

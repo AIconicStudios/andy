@@ -259,10 +259,10 @@ class AndyMark extends StatelessWidget {
         height: size,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [AndyColors.fuel, AndyColors.brand],
+            colors: AndyColors.gradient.sublist(0, 2),
           ),
           borderRadius: BorderRadius.circular(size * 0.32),
         ),

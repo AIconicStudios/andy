@@ -20,6 +20,8 @@ class AppState extends ChangeNotifier {
   int weeklyMinutesGoal = 150;
   int waterGoal = 8;
   ThemeMode themeMode = ThemeMode.system;
+  String themeName = 'ember'; // id of an AndyPalette
+  bool blackDark = false; // true black instead of charcoal in dark mode
   bool remindersOn = true;
   Set<String> remindersOff = {}; // categories switched off
 
@@ -37,6 +39,8 @@ class AppState extends ChangeNotifier {
 
   // Daily puzzle: letters tried on [puzzleDay], and the run of days solved.
   String puzzleDay = '';
+  String puzzleDoneDay = ''; // the day the puzzle was last won or lost
+  int puzzleLevel = 1; // 0 gentle, 1 hard, 2 brutal
   String puzzleGuesses = '';
   String puzzleLastWin = '';
   int puzzleStreak = 0;
@@ -58,6 +62,8 @@ class AppState extends ChangeNotifier {
         weeklyMinutesGoal = j['weeklyMinutesGoal'] ?? 150;
         waterGoal = j['waterGoal'] ?? 8;
         themeMode = ThemeMode.values[j['themeMode'] ?? 0];
+        themeName = j['themeName'] ?? 'ember';
+        blackDark = j['blackDark'] ?? false;
         remindersOn = j['remindersOn'] ?? true;
         remindersOff = Set<String>.from(j['remindersOff'] ?? []);
         List<T> list<T>(String k, T Function(Map<String, dynamic>) f) =>
@@ -73,6 +79,8 @@ class AppState extends ChangeNotifier {
         alarms = list('alarms', WakeAlarm.fromJson);
         savedWords = List<String>.from(j['savedWords'] ?? []);
         puzzleDay = j['puzzleDay'] ?? '';
+        puzzleDoneDay = j['puzzleDoneDay'] ?? '';
+        puzzleLevel = j['puzzleLevel'] ?? 1;
         puzzleGuesses = j['puzzleGuesses'] ?? '';
         puzzleLastWin = j['puzzleLastWin'] ?? '';
         puzzleStreak = j['puzzleStreak'] ?? 0;
@@ -100,6 +108,8 @@ class AppState extends ChangeNotifier {
         'weeklyMinutesGoal': weeklyMinutesGoal,
         'waterGoal': waterGoal,
         'themeMode': themeMode.index,
+        'themeName': themeName,
+        'blackDark': blackDark,
         'remindersOn': remindersOn,
         'remindersOff': remindersOff.toList(),
         'foods': foods.map((e) => e.toJson()).toList(),
@@ -111,6 +121,8 @@ class AppState extends ChangeNotifier {
         'alarms': alarms.map((e) => e.toJson()).toList(),
         'savedWords': savedWords,
         'puzzleDay': puzzleDay,
+        'puzzleDoneDay': puzzleDoneDay,
+        'puzzleLevel': puzzleLevel,
         'puzzleGuesses': puzzleGuesses,
         'puzzleLastWin': puzzleLastWin,
         'puzzleStreak': puzzleStreak,
@@ -129,6 +141,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     _save();
     onChanged?.call(this);
+  }
+
+  void setAppearance({ThemeMode? mode, String? theme, bool? black}) {
+    themeMode = mode ?? themeMode;
+    themeName = theme ?? themeName;
+    blackDark = black ?? blackDark;
+    _changed();
   }
 
   void setReminders(bool on) {
@@ -336,10 +355,20 @@ class AppState extends ChangeNotifier {
         : 0;
   }
 
+  bool get puzzleDoneToday => puzzleDoneDay == _today;
+
+  /// Changing level mid-game would change the free letters, so it applies
+  /// from the next puzzle unless today's has not been started.
+  void setPuzzleLevel(int level) {
+    puzzleLevel = level;
+    _changed();
+  }
+
   /// Stores the letters tried today. [won] and [lost] say how it ended.
   void recordPuzzle(String guesses, {required bool won, required bool lost}) {
     puzzleDay = _today;
     puzzleGuesses = guesses;
+    if (won || lost) puzzleDoneDay = _today;
     if (won && puzzleLastWin != _today) {
       puzzleStreak = puzzleStreakNow + 1;
       puzzleLastWin = _today;

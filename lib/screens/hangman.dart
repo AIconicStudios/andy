@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../dictionary.dart';
 import '../hangman.dart';
+import '../reminders.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -17,8 +18,9 @@ class HangmanScreen extends StatelessWidget {
     final s = AndyScope.of(context);
     final t = Theme.of(context);
     final cs = t.colorScheme;
-    final puzzle =
-        dailyPuzzle(dictionary, DateTime.now(), s.puzzleGuessesToday);
+    final puzzle = dailyPuzzle(
+        dictionary, DateTime.now(), s.puzzleGuessesToday,
+        level: s.puzzleLevel);
 
     if (puzzle == null) {
       return Scaffold(
@@ -30,7 +32,8 @@ class HangmanScreen extends StatelessWidget {
       );
     }
     final g = puzzle.game;
-    final sense = puzzle.entry.senses.first;
+    final sense = puzzle.entry.senses.first; // full meaning, shown at the end
+    final clue = puzzle.clue;
     final saved = s.savedWords.contains(g.word);
 
     void tap(String letter) {
@@ -43,6 +46,11 @@ class HangmanScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Daily puzzle'),
         actions: [
+          IconButton(
+            tooltip: 'Puzzle settings',
+            onPressed: () => showAndySheet(context, const _PuzzleSettings()),
+            icon: const Icon(Icons.tune_rounded),
+          ),
           if (s.puzzleStreakNow > 0)
             Padding(
               padding: const EdgeInsets.only(right: 18),
@@ -85,13 +93,13 @@ class HangmanScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('CLUE · ${sense.pos.toUpperCase()}',
+                  Text('CLUE · ${clue.pos.toUpperCase()}',
                       style: t.textTheme.labelSmall?.copyWith(
                           color: AndyColors.self,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.5)),
                   const SizedBox(height: 6),
-                  Text(sense.definition,
+                  Text(clue.definition,
                       style: t.textTheme.titleMedium
                           ?.copyWith(height: 1.35, fontWeight: FontWeight.w600)),
                 ],
@@ -276,6 +284,67 @@ class _Key extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PuzzleSettings extends StatelessWidget {
+  const _PuzzleSettings();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AndyScope.of(context);
+    final t = Theme.of(context);
+    final started = s.puzzleGuessesToday.isNotEmpty;
+    final reminderOn = s.remindersOn && !s.remindersOff.contains('puzzle');
+    return SheetBody(
+      title: 'Puzzle settings',
+      children: [
+        Text('Difficulty', style: t.textTheme.titleMedium),
+        RadioGroup<int>(
+          groupValue: s.puzzleLevel,
+          onChanged: (v) {
+            if (v != null && !started) s.setPuzzleLevel(v);
+          },
+          child: Column(
+            children: [
+              for (var i = 0; i < puzzleLevels.length; i++)
+                RadioListTile<int>(
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  enabled: !started,
+                  value: i,
+                  title: Text(puzzleLevels[i].$1,
+                      style: t.textTheme.bodyLarge),
+                  subtitle: Text(puzzleLevels[i].$2),
+                ),
+            ],
+          ),
+        ),
+        if (started)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'Today\'s puzzle is already under way. You can change the difficulty again tomorrow.',
+              style: t.textTheme.bodySmall
+                  ?.copyWith(color: t.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        const Divider(),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text('Remind me to play', style: t.textTheme.titleMedium),
+          subtitle: Text(!reminders.available
+              ? 'Notifications work in the phone app'
+              : !s.remindersOn
+                  ? 'Andy\'s nudges are switched off under Me, Reminders'
+                  : '11:00, on days you have not played yet'),
+          value: reminderOn,
+          onChanged: s.remindersOn && reminders.available
+              ? (v) => s.setReminderCategory('puzzle', v)
+              : null,
+        ),
+      ],
     );
   }
 }

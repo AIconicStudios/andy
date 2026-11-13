@@ -63,10 +63,10 @@ class _TodayScreenState extends State<TodayScreen> {
         Container(
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFFF2A541), Color(0xFFE4572E), Color(0xFFB8336A)],
+              colors: AndyColors.gradient,
             ),
             borderRadius: BorderRadius.circular(28),
           ),
@@ -205,7 +205,7 @@ class _TodayScreenState extends State<TodayScreen> {
                       color: AndyColors.brand.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Icon(Icons.center_focus_strong_rounded,
+                    child: Icon(Icons.center_focus_strong_rounded,
                         color: AndyColors.brand),
                   ),
                   const SizedBox(width: 14),
@@ -375,8 +375,9 @@ class _PuzzleCard extends StatelessWidget {
     final s = AndyScope.of(context);
     final t = Theme.of(context);
     final cs = t.colorScheme;
-    final puzzle =
-        dailyPuzzle(dictionary, DateTime.now(), s.puzzleGuessesToday);
+    final puzzle = dailyPuzzle(
+        dictionary, DateTime.now(), s.puzzleGuessesToday,
+        level: s.puzzleLevel);
     if (puzzle == null) return const SizedBox.shrink();
     final g = puzzle.game;
     final streak = s.puzzleStreakNow;
@@ -385,7 +386,7 @@ class _PuzzleCard extends StatelessWidget {
         : g.lost
             ? 'Missed today. The word was "${g.word}". New one tomorrow.'
             : g.guesses.isEmpty
-                ? 'Fill in the blanks. Three wrong letters and it is over.'
+                ? '${puzzleLevels[s.puzzleLevel].$1} mode. Three wrong letters and it is over.'
                 : 'In progress. ${g.livesLeft} ${g.livesLeft == 1 ? 'life' : 'lives'} left.';
     return Padding(
       padding: const EdgeInsets.only(top: 10),

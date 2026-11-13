@@ -46,22 +46,65 @@ int _dayNumber(DateTime day) =>
     DateTime.utc(day.year, day.month, day.day).millisecondsSinceEpoch ~/
     Duration.millisecondsPerDay;
 
-/// About a third of the word's distinct letters, filled in for free. With
-/// only three misses allowed, a bare row of blanks would be a coin toss.
-Set<String> givenLetters(String word, DateTime day) {
+const puzzleLevels = [
+  ('Gentle', 'A third of the letters are filled in'),
+  ('Hard', 'One letter is filled in'),
+  ('Brutal', 'Nothing filled in. Just the clue and three lives'),
+];
+
+/// Letters filled in for free at [level]: a third of the distinct letters
+/// (gentle), a single one (hard), or none (brutal). Which letters is fixed
+/// for the day.
+Set<String> givenLetters(String word, DateTime day, [int level = 1]) {
   final distinct = word.split('').toSet().toList()..sort();
   distinct.shuffle(Random(_dayNumber(day)));
-  return distinct.take(max(1, distinct.length ~/ 3)).toSet();
+  final count = switch (level) {
+    0 => max(1, distinct.length ~/ 3),
+    1 => 1,
+    _ => 0,
+  };
+  return distinct.take(count).toSet();
+}
+
+const _mask = '•••';
+
+bool _leaks(String token, String answer) {
+  final t = token.toLowerCase();
+  if (t.length < 4) return false;
+  // Same opening four letters means the same root: mercy / merciless.
+  return answer.startsWith(t.substring(0, 4)) ||
+      (answer.length >= 5 && t.contains(answer.substring(0, 5)));
+}
+
+/// A definition with any word that gives the answer away blanked out.
+String _hide(String text, String answer) => text.replaceAllMapped(
+    RegExp(r'[A-Za-z]+'), (m) => _leaks(m[0]!, answer) ? _mask : m[0]!);
+
+/// The clue for a puzzle: the meaning that leaks least, with any relatives
+/// of the answer blanked out. No example sentence, which would contain it.
+Sense clueFor(Entry entry) {
+  Sense? best;
+  var bestHidden = 1 << 30;
+  for (final s in entry.senses) {
+    final hidden = _mask.allMatches(_hide(s.definition, entry.word)).length;
+    if (hidden < bestHidden) {
+      best = s;
+      bestHidden = hidden;
+    }
+  }
+  return Sense(best!.pos, _hide(best.definition, entry.word), '');
 }
 
 /// Today's puzzle: same word for everyone on the same date, and never the
 /// word of the day (which is on show on the Today tab).
-({Entry entry, Hangman game})? dailyPuzzle(
-    Dictionary dict, DateTime day, String guesses) {
+({Entry entry, Hangman game, Sense clue})? dailyPuzzle(
+    Dictionary dict, DateTime day, String guesses,
+    {int level = 1}) {
   final entry = dict.puzzleWord(day);
   if (entry == null) return null;
   return (
     entry: entry,
-    game: Hangman(entry.word, givenLetters(entry.word, day), guesses)
+    game: Hangman(entry.word, givenLetters(entry.word, day, level), guesses),
+    clue: clueFor(entry),
   );
 }

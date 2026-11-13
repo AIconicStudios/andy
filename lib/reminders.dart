@@ -15,6 +15,7 @@ import 'state.dart';
 const reminderCategories = {
   'worth': ('Morning worth reminder', '8:00, every day'),
   'word': ('Word of the day', '9:30, every day'),
+  'puzzle': ('Daily puzzle', '11:00, if you have not played'),
   'food': ('Meal logging', 'Lunch and dinner, if you have not logged'),
   'move': ('Movement', 'Early evening, if you have not moved'),
   'people': ('People', 'The day someone is overdue a message'),
@@ -73,6 +74,11 @@ List<PlannedReminder> planReminders(AppState s, DateTime now,
     if (word != null && word.senses.isNotEmpty) {
       add(id + 7, day, 9, 30, 'Word of the day: ${word.word}',
           '${word.senses.first.pos}. ${word.senses.first.definition}');
+    }
+    if (on('puzzle') && words != null && words.loaded &&
+        !(isToday && s.puzzleDoneToday)) {
+      add(id + 8, day, 11, 0, 'Daily puzzle',
+          'A new word is waiting. Three lives. Keep the streak honest.');
     }
     if (on('food')) {
       if (!(isToday && loggedFoodSince(11))) {

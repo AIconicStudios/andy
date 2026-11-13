@@ -59,12 +59,14 @@ class AndyApp extends StatelessWidget {
       child: Builder(
         builder: (context) {
           final s = AndyScope.of(context);
+          // Apply the chosen colours before anything is built with them.
+          AndyColors.palette = paletteById(s.themeName);
           return MaterialApp(
             title: 'Andy',
             navigatorKey: _navigator,
             debugShowCheckedModeBanner: false,
             theme: andyTheme(Brightness.light),
-            darkTheme: andyTheme(Brightness.dark),
+            darkTheme: andyTheme(Brightness.dark, black: s.blackDark),
             themeMode: s.themeMode,
             home: !s.loaded
                 ? const Scaffold(body: SizedBox())

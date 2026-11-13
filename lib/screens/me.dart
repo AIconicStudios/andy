@@ -50,6 +50,12 @@ class MeScreen extends StatelessWidget {
             ),
             const SizedBox(width: 6),
             IconButton.filledTonal(
+              tooltip: 'Appearance',
+              onPressed: () => showAndySheet(context, const _AppearanceSheet()),
+              icon: const Icon(Icons.palette_outlined),
+            ),
+            const SizedBox(width: 6),
+            IconButton.filledTonal(
               tooltip: 'Settings',
               onPressed: () => showAndySheet(context, const _SettingsSheet()),
               icon: const Icon(Icons.tune_rounded),
@@ -376,7 +382,6 @@ class _SettingsSheet extends StatefulWidget {
 
 class _SettingsSheetState extends State<_SettingsSheet> {
   late final TextEditingController _name, _kcal, _weight, _minutes;
-  late ThemeMode _mode;
   bool _init = false;
 
   @override
@@ -389,7 +394,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     _kcal = TextEditingController(text: '${s.kcalGoal}');
     _weight = TextEditingController(text: s.weightKg.round().toString());
     _minutes = TextEditingController(text: '${s.weeklyMinutesGoal}');
-    _mode = s.themeMode;
   }
 
   @override
@@ -445,17 +449,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           decoration: const InputDecoration(
               labelText: 'Weekly movement goal', suffixText: 'min'),
         ),
-        const SizedBox(height: 14),
-        SegmentedButton<ThemeMode>(
-          showSelectedIcon: false,
-          segments: const [
-            ButtonSegment(value: ThemeMode.system, label: Text('Auto')),
-            ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-            ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
-          ],
-          selected: {_mode},
-          onSelectionChanged: (v) => setState(() => _mode = v.first),
-        ),
         const SizedBox(height: 18),
         FilledButton(
           onPressed: () {
@@ -469,7 +462,6 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               weeklyMinutesGoal:
                   (int.tryParse(_minutes.text) ?? s.weeklyMinutesGoal)
                       .clamp(30, 2000),
-              themeMode: _mode,
             );
             Navigator.pop(context);
           },
@@ -532,6 +524,101 @@ class _RemindersSheet extends StatelessWidget {
                 ? (v) => s.setReminderCategory(e.key, v)
                 : null,
           ),
+      ],
+    );
+  }
+}
+
+/// Colour theme, light or dark, and true black.
+class _AppearanceSheet extends StatelessWidget {
+  const _AppearanceSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AndyScope.of(context);
+    final t = Theme.of(context);
+    final cs = t.colorScheme;
+    return SheetBody(
+      title: 'Appearance',
+      children: [
+        Text('Colour', style: t.textTheme.titleMedium),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 12,
+          children: [
+            for (final p in palettes)
+              Semantics(
+                button: true,
+                selected: s.themeName == p.id,
+                label: '${p.name} theme',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => s.setAppearance(theme: p.id),
+                  child: SizedBox(
+                    width: 74,
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 62,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: p.gradient,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              width: 3,
+                              color: s.themeName == p.id
+                                  ? cs.onSurface
+                                  : Colors.transparent,
+                            ),
+                          ),
+                          child: s.themeName == p.id
+                              ? const Icon(Icons.check_rounded,
+                                  color: Colors.white)
+                              : null,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(p.name, style: t.textTheme.labelMedium),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text('Mode', style: t.textTheme.titleMedium),
+        const SizedBox(height: 10),
+        SegmentedButton<ThemeMode>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(
+                value: ThemeMode.system,
+                icon: Icon(Icons.brightness_auto_rounded),
+                label: Text('Auto')),
+            ButtonSegment(
+                value: ThemeMode.light,
+                icon: Icon(Icons.light_mode_rounded),
+                label: Text('Light')),
+            ButtonSegment(
+                value: ThemeMode.dark,
+                icon: Icon(Icons.dark_mode_rounded),
+                label: Text('Dark')),
+          ],
+          selected: {s.themeMode},
+          onSelectionChanged: (v) => s.setAppearance(mode: v.first),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('True black'),
+          subtitle: const Text('Pure black background in dark mode'),
+          value: s.blackDark,
+          onChanged: (v) => s.setAppearance(black: v),
+        ),
       ],
     );
   }

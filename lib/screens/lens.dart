@@ -239,10 +239,10 @@ class _LensScreenState extends State<LensScreen> with WidgetsBindingObserver {
                                 shape: BoxShape.circle,
                                 border:
                                     Border.all(color: Colors.white, width: 4),
-                                gradient: const LinearGradient(
+                                gradient: LinearGradient(
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
-                                  colors: [AndyColors.fuel, AndyColors.brand],
+                                  colors: AndyColors.gradient.sublist(0, 2),
                                 ),
                               ),
                               child: _busy
