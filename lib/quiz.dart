@@ -241,12 +241,24 @@ Quiz _rule(Random r) {
       _near(r, right, [right + xs[3], right - m, f(xs[2]) + (f(xs[2]) - f(xs[1]))]));
 }
 
+/// "Which word means...": drawn from the words of the day.
+Quiz _vocabulary(Random r, List<(String, String)> vocab) {
+  final picks = ([...vocab]..shuffle(r)).take(4).toList();
+  return _build(r, 'Vocabulary', 'Which word means:\n${picks.first.$2}?',
+      picks.first.$1, picks.skip(1).map((p) => p.$1));
+}
+
 const _makers = [_sequence, _arithmetic, _oddOneOut, _analogy, _letters, _logic, _rule];
 
 /// A fresh random question. [not] avoids repeating the previous kind.
-Quiz randomQuiz(Random r, {String? not}) {
+/// With a [vocab] of word and meaning pairs, vocabulary questions join in.
+Quiz randomQuiz(Random r,
+    {String? not, List<(String, String)> vocab = const []}) {
   while (true) {
-    final q = _pick(r, _makers)(r);
+    final slot = r.nextInt(_makers.length + (vocab.length >= 4 ? 1 : 0));
+    final q = slot < _makers.length
+        ? _makers[slot](r)
+        : _vocabulary(r, vocab);
     if (q.kind != not) return q;
   }
 }

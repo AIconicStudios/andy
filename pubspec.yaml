@@ -72,6 +72,8 @@ flutter:
   assets:
     - assets/embedder.tflite
     - assets/alarm.wav
+    - assets/dictionary.tsv
+    - assets/words_of_the_day.txt
 
   # To add assets to your application, add an assets section, like this:
   # assets:

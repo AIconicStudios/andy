@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../alarms.dart';
 import '../andy_brain.dart';
+import '../dictionary.dart';
 import '../quiz.dart';
 import '../state.dart';
 import '../theme.dart';
@@ -254,7 +255,8 @@ class AlarmRingScreen extends StatefulWidget {
 
 class _AlarmRingScreenState extends State<AlarmRingScreen> {
   final _random = Random();
-  late Quiz _quiz = randomQuiz(_random);
+  late final _vocab = dictionary.vocabulary;
+  late Quiz _quiz = randomQuiz(_random, vocab: _vocab);
   int _solved = 0;
   int? _picked; // option tapped for the current question
   bool _done = false;
@@ -285,7 +287,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     }
     setState(() {
       if (right) _solved++;
-      _quiz = randomQuiz(_random, not: _quiz.kind);
+      _quiz = randomQuiz(_random, not: _quiz.kind, vocab: _vocab);
       _picked = null;
     });
   }

@@ -56,6 +56,20 @@ lets you pick; every pick teaches him another view of it.
 Packages: `camera`, `tflite_flutter`, `google_mlkit_image_labeling`,
 `google_mlkit_text_recognition`, `image`, `path_provider`.
 
+## Word of the day and dictionary
+
+Every day Andy shows a new word on the Today tab, with its meaning and an
+example sentence, and sends it as a 9:30 notification. Tap it to open the
+built-in dictionary: about 32,600 English words, searchable as you type,
+entirely offline. Bookmark words to keep them under "My words". The daily
+words also turn up as vocabulary questions in the brain alarm.
+
+Definitions come from [WordNet 3.0](https://wordnet.princeton.edu/)
+(Princeton University), free to use and redistribute; the licence is in
+`third_party/WORDNET_LICENSE`. The daily list is 567 words chosen to be
+worth learning and safe for a lock screen, so it runs for about a year and
+a half before repeating.
+
 ## Brain alarm
 
 An alarm with no snooze and no off button. Once it rings, the only way to
@@ -93,6 +107,7 @@ The iOS build needs a Mac with Xcode.
 ## Layout
 
 - `lib/state.dart` — all data, persistence and the life score
+- `lib/dictionary.dart` — bundled dictionary, search and word of the day
 - `lib/quiz.dart` — random question generator for the brain alarm
 - `lib/alarms.dart` — alarm model and scheduling
 - `lib/memories.dart` — memory model and the matching rules

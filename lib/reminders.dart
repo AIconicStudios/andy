@@ -7,12 +7,14 @@ import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'andy_brain.dart';
+import 'dictionary.dart';
 import 'models.dart';
 import 'state.dart';
 
 /// Reminder categories the user can switch off individually.
 const reminderCategories = {
   'worth': ('Morning worth reminder', '8:00, every day'),
+  'word': ('Word of the day', '9:30, every day'),
   'food': ('Meal logging', 'Lunch and dinner, if you have not logged'),
   'move': ('Movement', 'Early evening, if you have not moved'),
   'people': ('People', 'The day someone is overdue a message'),
@@ -43,7 +45,8 @@ const maxPending = 64;
 /// Notifications are scheduled on the device with fixed text, so this is
 /// re-run whenever the data changes: log lunch and today's lunch nudge
 /// disappears; message Mum and her reminder moves to the next due date.
-List<PlannedReminder> planReminders(AppState s, DateTime now) {
+List<PlannedReminder> planReminders(AppState s, DateTime now,
+    {Dictionary? words}) {
   if (!s.onboarded) return [];
   final out = <PlannedReminder>[];
   final today = dayOf(now);
@@ -65,6 +68,11 @@ List<PlannedReminder> planReminders(AppState s, DateTime now) {
 
     if (on('worth')) {
       add(id, day, 8, 0, 'Remember this, ${s.name}', worthFor(day));
+    }
+    final word = on('word') ? words?.wordOfTheDay(day) : null;
+    if (word != null && word.senses.isNotEmpty) {
+      add(id + 7, day, 9, 30, 'Word of the day: ${word.word}',
+          '${word.senses.first.pos}. ${word.senses.first.definition}');
     }
     if (on('food')) {
       if (!(isToday && loggedFoodSince(11))) {
@@ -225,7 +233,7 @@ class Reminders {
                   AndroidFlutterLocalNotificationsPlugin>()
               ?.canScheduleExactNotifications() ??
           false;
-      for (final r in planReminders(s, DateTime.now())) {
+      for (final r in planReminders(s, DateTime.now(), words: dictionary)) {
         await _plugin.zonedSchedule(
           id: r.id,
           title: r.title,

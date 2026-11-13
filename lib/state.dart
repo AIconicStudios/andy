@@ -33,6 +33,7 @@ class AppState extends ChangeNotifier {
   List<Proof> proofs = [];
   List<Memory> memories = []; // newest first
   List<WakeAlarm> alarms = [];
+  List<String> savedWords = []; // dictionary bookmarks, oldest first
   Set<String> habitDone = {}; // "<dateKey>|<habitId>"
   Map<String, int> mood = {}; // dateKey -> 1..5
   Map<String, int> water = {}; // dateKey -> glasses
@@ -63,6 +64,7 @@ class AppState extends ChangeNotifier {
         proofs = list('proofs', Proof.fromJson);
         memories = list('memories', Memory.fromJson);
         alarms = list('alarms', WakeAlarm.fromJson);
+        savedWords = List<String>.from(j['savedWords'] ?? []);
         habitDone = Set<String>.from(j['habitDone'] ?? []);
         mood = Map<String, int>.from(j['mood'] ?? {});
         water = Map<String, int>.from(j['water'] ?? {});
@@ -95,12 +97,16 @@ class AppState extends ChangeNotifier {
         'proofs': proofs.map((e) => e.toJson()).toList(),
         'memories': memories.map((e) => e.toJson()).toList(),
         'alarms': alarms.map((e) => e.toJson()).toList(),
+        'savedWords': savedWords,
         'habitDone': habitDone.toList(),
         'mood': mood,
         'water': water,
       }),
     );
   }
+
+  /// Rebuilds the UI without saving, after something outside the state loads.
+  void refresh() => notifyListeners();
 
   void _changed() {
     notifyListeners();
@@ -289,6 +295,13 @@ class AppState extends ChangeNotifier {
 
   void removeProof(String id) {
     proofs.removeWhere((p) => p.id == id);
+    _changed();
+  }
+
+  // ---- dictionary --------------------------------------------------------
+
+  void toggleWord(String word) {
+    savedWords.contains(word) ? savedWords.remove(word) : savedWords.add(word);
     _changed();
   }
 

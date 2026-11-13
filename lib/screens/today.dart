@@ -5,6 +5,7 @@ import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'alarms.dart';
+import 'dictionary.dart';
 import 'lens.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -109,6 +110,8 @@ class _TodayScreenState extends State<TodayScreen> {
             ],
           ),
         ),
+
+        const WordOfTheDayCard(),
 
         const SectionTitle('Your day'),
         Panel(
@@ -255,6 +258,50 @@ class _TodayScreenState extends State<TodayScreen> {
                           s.alarms.where((a) => a.enabled).isEmpty
                               ? 'An alarm that only stops when you solve 5 questions.'
                               : 'Next: ${(s.alarms.where((a) => a.enabled).toList()..sort((a, b) => a.next(DateTime.now()).compareTo(b.next(DateTime.now())))).first.timeText}. Solve 5 questions to stop it.',
+                          style: t.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: cs.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+        Panel(
+          padding: EdgeInsets.zero,
+          child: InkWell(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const DictionaryScreen())),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AndyColors.people.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.menu_book_rounded,
+                        color: AndyColors.people),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Dictionary', style: t.textTheme.titleMedium),
+                        Text(
+                          s.savedWords.isEmpty
+                              ? 'Look up any word, offline. Bookmark the ones worth keeping.'
+                              : '${s.savedWords.length} ${s.savedWords.length == 1 ? 'word' : 'words'} saved. Look up any word, offline.',
                           style: t.textTheme.bodySmall?.copyWith(
                               color: cs.onSurfaceVariant, height: 1.3),
                         ),

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
 import 'alarms.dart';
+import 'dictionary.dart';
 import 'reminders.dart';
 import 'screens/alarms.dart';
 import 'screens/food.dart';
@@ -20,7 +21,13 @@ Future<void> main() async {
       alarmService.sync(s);
     };
   runApp(AndyApp(state: state));
-  await Future.wait([state.load(), reminders.init(), alarmService.init()]);
+  await Future.wait([
+    state.load(),
+    reminders.init(),
+    alarmService.init(),
+    dictionary.load(),
+  ]);
+  state.refresh(); // the dictionary is in: show the word of the day
   // Refresh the week of reminders and the alarms on every launch.
   reminders.sync(state);
   await alarmService.sync(state);
