@@ -56,6 +56,21 @@ lets you pick; every pick teaches him another view of it.
 Packages: `camera`, `tflite_flutter`, `google_mlkit_image_labeling`,
 `google_mlkit_text_recognition`, `image`, `path_provider`.
 
+## Brain alarm
+
+An alarm with no snooze and no off button. Once it rings, the only way to
+silence it is to answer five random questions correctly: number and letter
+sequences, mental arithmetic, odd one out, analogies, hidden rules, short
+logic problems and classic trick questions. A wrong answer does not count
+and brings a new question. Open it from **Tools** on the Today tab; "Try
+the quiz" runs a silent practice round.
+
+The alarm rings natively through the free `alarm` package, so it sounds with
+the app closed and the screen locked, keeps going if the app is swiped away,
+and holds its volume against the volume keys. Alarms can ring once or every
+day. Questions are generated on the phone (`lib/quiz.dart`), so there is no
+question bank to run out of and nothing to download.
+
 ## Run
 
 ```bash
@@ -78,6 +93,8 @@ The iOS build needs a Mac with Xcode.
 ## Layout
 
 - `lib/state.dart` — all data, persistence and the life score
+- `lib/quiz.dart` — random question generator for the brain alarm
+- `lib/alarms.dart` — alarm model and scheduling
 - `lib/memories.dart` — memory model and the matching rules
 - `lib/lens_engine.dart` — camera photo to recognisable clues
 - `lib/reminders.dart` — what gets notified and when

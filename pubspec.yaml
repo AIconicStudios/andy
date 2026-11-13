@@ -45,6 +45,7 @@ dependencies:
   image: ^4.12.0
   path_provider: ^2.1.6
   tflite_flutter: ^0.12.1
+  alarm: ^5.15.0
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +71,7 @@ flutter:
 
   assets:
     - assets/embedder.tflite
+    - assets/alarm.wav
 
   # To add assets to your application, add an assets section, like this:
   # assets:

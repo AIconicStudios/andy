@@ -136,4 +136,23 @@ void main() {
       expect(planReminders(s, morning).length, lessThanOrEqualTo(maxPending));
     });
   });
+  test('a one-off alarm switches off once beaten; a daily one stays on',
+      () async {
+    final s = AppState();
+    await s.load();
+    s.saveAlarm(hour: 6, minute: 0, daily: true);
+    s.saveAlarm(hour: 7, minute: 15, daily: false, label: 'Flight');
+    expect(s.alarms.map((a) => a.id).toSet().length, 2);
+    for (final a in [...s.alarms]) {
+      s.alarmBeaten(a.id);
+    }
+    expect(s.alarms.firstWhere((a) => a.daily).enabled, true);
+    expect(s.alarms.firstWhere((a) => !a.daily).enabled, false);
+    await Future<void>.delayed(Duration.zero);
+
+    final again = AppState();
+    await again.load();
+    expect(again.alarms.length, 2);
+    expect(again.alarms.firstWhere((a) => !a.daily).label, 'Flight');
+  });
 }

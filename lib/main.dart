@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'alarms.dart';
 import 'reminders.dart';
+import 'screens/alarms.dart';
 import 'screens/food.dart';
 import 'screens/me.dart';
 import 'screens/move.dart';
@@ -12,11 +14,31 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final state = AppState()..onChanged = reminders.sync;
+  final state = AppState()
+    ..onChanged = (s) {
+      reminders.sync(s);
+      alarmService.sync(s);
+    };
   runApp(AndyApp(state: state));
-  await Future.wait([state.load(), reminders.init()]);
-  // Refresh the week of reminders on every launch.
+  await Future.wait([state.load(), reminders.init(), alarmService.init()]);
+  // Refresh the week of reminders and the alarms on every launch.
   reminders.sync(state);
+  await alarmService.sync(state);
+  alarmService.listen(_showRinging);
+}
+
+final _navigator = GlobalKey<NavigatorState>();
+final _ringing = <int>{};
+
+/// Puts the quiz in front of whatever screen is open when an alarm goes off.
+void _showRinging(int id) {
+  final nav = _navigator.currentState;
+  if (nav == null || !_ringing.add(id)) return;
+  nav
+      .push(MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => AlarmRingScreen(alarmId: id)))
+      .whenComplete(() => _ringing.remove(id));
 }
 
 class AndyApp extends StatelessWidget {
@@ -32,6 +54,7 @@ class AndyApp extends StatelessWidget {
           final s = AndyScope.of(context);
           return MaterialApp(
             title: 'Andy',
+            navigatorKey: _navigator,
             debugShowCheckedModeBanner: false,
             theme: andyTheme(Brightness.light),
             darkTheme: andyTheme(Brightness.dark),

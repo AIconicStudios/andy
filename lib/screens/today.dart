@@ -4,6 +4,7 @@ import '../andy_brain.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'alarms.dart';
 import 'lens.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -179,7 +180,7 @@ class _TodayScreenState extends State<TodayScreen> {
           ),
         ),
 
-        const SectionTitle('Memory lens'),
+        const SectionTitle('Tools'),
         Panel(
           padding: EdgeInsets.zero,
           child: InkWell(
@@ -210,6 +211,50 @@ class _TodayScreenState extends State<TodayScreen> {
                           s.memories.isEmpty
                               ? 'A book, your TV, a gift. Tell me what it means and I will remind you next time.'
                               : '${s.memories.length} ${s.memories.length == 1 ? 'memory' : 'memories'} saved. Point again to bring one back.',
+                          style: t.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant, height: 1.3),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right_rounded,
+                      color: cs.onSurfaceVariant),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+        Panel(
+          padding: EdgeInsets.zero,
+          child: InkWell(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AlarmsScreen())),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AndyColors.fuel.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.alarm_rounded,
+                        color: AndyColors.fuel),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Brain alarm', style: t.textTheme.titleMedium),
+                        Text(
+                          s.alarms.where((a) => a.enabled).isEmpty
+                              ? 'An alarm that only stops when you solve 5 questions.'
+                              : 'Next: ${(s.alarms.where((a) => a.enabled).toList()..sort((a, b) => a.next(DateTime.now()).compareTo(b.next(DateTime.now())))).first.timeText}. Solve 5 questions to stop it.',
                           style: t.textTheme.bodySmall?.copyWith(
                               color: cs.onSurfaceVariant, height: 1.3),
                         ),

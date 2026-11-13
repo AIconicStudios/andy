@@ -6,6 +6,15 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>audio</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.gdelataillade.fetch</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Andy uses the camera to recognise things you have saved a memory about.</string>
 	<key>CFBundleDisplayName</key>

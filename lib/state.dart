@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'alarms.dart';
 import 'memories.dart';
 import 'models.dart';
 
@@ -31,6 +32,7 @@ class AppState extends ChangeNotifier {
   List<Habit> habits = [];
   List<Proof> proofs = [];
   List<Memory> memories = []; // newest first
+  List<WakeAlarm> alarms = [];
   Set<String> habitDone = {}; // "<dateKey>|<habitId>"
   Map<String, int> mood = {}; // dateKey -> 1..5
   Map<String, int> water = {}; // dateKey -> glasses
@@ -60,6 +62,7 @@ class AppState extends ChangeNotifier {
         habits = list('habits', Habit.fromJson);
         proofs = list('proofs', Proof.fromJson);
         memories = list('memories', Memory.fromJson);
+        alarms = list('alarms', WakeAlarm.fromJson);
         habitDone = Set<String>.from(j['habitDone'] ?? []);
         mood = Map<String, int>.from(j['mood'] ?? {});
         water = Map<String, int>.from(j['water'] ?? {});
@@ -91,6 +94,7 @@ class AppState extends ChangeNotifier {
         'habits': habits.map((e) => e.toJson()).toList(),
         'proofs': proofs.map((e) => e.toJson()).toList(),
         'memories': memories.map((e) => e.toJson()).toList(),
+        'alarms': alarms.map((e) => e.toJson()).toList(),
         'habitDone': habitDone.toList(),
         'mood': mood,
         'water': water,
@@ -285,6 +289,55 @@ class AppState extends ChangeNotifier {
 
   void removeProof(String id) {
     proofs.removeWhere((p) => p.id == id);
+    _changed();
+  }
+
+  // ---- wake-up alarms ----------------------------------------------------
+
+  /// Creates an alarm, or updates the one with [id]. Saving switches it on.
+  void saveAlarm({
+    int? id,
+    required int hour,
+    required int minute,
+    String label = '',
+    bool daily = true,
+  }) {
+    if (id == null) {
+      // Small ids, clear of the ones reminders use for notifications.
+      var next = 1000;
+      for (final a in alarms) {
+        if (a.id >= next) next = a.id + 1;
+      }
+      alarms.add(WakeAlarm(
+          id: next, hour: hour, minute: minute, label: label, daily: daily));
+    } else {
+      final a = alarms.firstWhere((a) => a.id == id);
+      a
+        ..hour = hour
+        ..minute = minute
+        ..label = label
+        ..daily = daily
+        ..enabled = true;
+    }
+    _changed();
+  }
+
+  void setAlarmEnabled(int id, bool on) {
+    alarms.firstWhere((a) => a.id == id).enabled = on;
+    _changed();
+  }
+
+  void removeAlarm(int id) {
+    alarms.removeWhere((a) => a.id == id);
+    _changed();
+  }
+
+  /// The quiz was solved: a one-off alarm is finished, a daily one stays on
+  /// and is rescheduled for tomorrow.
+  void alarmBeaten(int id) {
+    for (final a in alarms) {
+      if (a.id == id && !a.daily) a.enabled = false;
+    }
     _changed();
   }
 

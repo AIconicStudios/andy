@@ -1,14 +1,13 @@
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image/image.dart' as img;
 import 'package:path_provider/path_provider.dart';
-import 'package:tflite_flutter/tflite_flutter.dart';
 
+import 'embedder_stub.dart' if (dart.library.ffi) 'embedder_io.dart';
 import 'memories.dart';
 
 /// One look through the camera: the clues, plus a small photo to keep.
@@ -28,7 +27,6 @@ class _Pixels {
 }
 
 const _side = 224;
-const embedSize = 1024;
 
 /// Fractions of the photo's short side to look at. The widest catches a
 /// thing that fills the frame; the tightest catches it small and far away.
@@ -74,12 +72,12 @@ _Pixels _readPixels(String path) {
 class LensEngine {
   ImageLabeler? _labeler;
   TextRecognizer? _reader;
-  Interpreter? _embedder;
+  final _embedder = Embedder();
   String? _dir;
 
   /// False if the visual model failed to load; matching then falls back to
   /// words, kind and colour.
-  bool get hasEmbedder => _embedder != null;
+  bool get hasEmbedder => _embedder.loaded;
 
   Future<void> init() async {
     if (kIsWeb || _dir != null) return;
@@ -89,12 +87,7 @@ class LensEngine {
     _dir = dir.path;
     _labeler = ImageLabeler(options: ImageLabelerOptions(confidenceThreshold: 0.55));
     _reader = TextRecognizer();
-    try {
-      _embedder = await Interpreter.fromAsset('assets/embedder.tflite',
-          options: InterpreterOptions()..threads = 2);
-    } catch (e) {
-      debugPrint('Visual model unavailable: $e');
-    }
+    await _embedder.load();
   }
 
   Future<Sighting> look(String photoPath) async {
@@ -110,27 +103,10 @@ class LensEngine {
         labels: {for (final l in labels.take(6)) l.label: l.confidence},
         words: wordsFrom(text),
         colors: pixels.colors,
-        embeds: _embed(pixels.crops),
+        embeds: _embedder.embed(pixels.crops),
       ),
       pixels.thumbnail,
     );
-  }
-
-  List<Int8List> _embed(List<Float32List> crops) {
-    final model = _embedder;
-    if (model == null) return const [];
-    try {
-      final out = <Int8List>[];
-      for (final crop in crops) {
-        final result = Float32List(embedSize);
-        model.run(crop.buffer.asUint8List(), result.buffer);
-        out.add(quantize(result));
-      }
-      return out;
-    } catch (e) {
-      debugPrint('Visual model failed: $e');
-      return const [];
-    }
   }
 
   /// Saves the photo for a memory and returns its file name.
