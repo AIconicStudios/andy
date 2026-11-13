@@ -5,7 +5,10 @@ import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
 import 'alarms.dart';
+import '../dictionary.dart' show dictionary;
+import '../hangman.dart';
 import 'dictionary.dart';
+import 'hangman.dart';
 import 'lens.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -112,6 +115,8 @@ class _TodayScreenState extends State<TodayScreen> {
         ),
 
         const WordOfTheDayCard(),
+
+        const _PuzzleCard(),
 
         const SectionTitle('Your day'),
         Panel(
@@ -357,6 +362,79 @@ class _TodayScreenState extends State<TodayScreen> {
               ),
             ),
       ],
+    );
+  }
+}
+
+/// Entry to the daily fill-in-the-blanks puzzle, with today's status.
+class _PuzzleCard extends StatelessWidget {
+  const _PuzzleCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final s = AndyScope.of(context);
+    final t = Theme.of(context);
+    final cs = t.colorScheme;
+    final puzzle =
+        dailyPuzzle(dictionary, DateTime.now(), s.puzzleGuessesToday);
+    if (puzzle == null) return const SizedBox.shrink();
+    final g = puzzle.game;
+    final streak = s.puzzleStreakNow;
+    final status = g.won
+        ? 'Solved. ${streak > 1 ? '$streak days in a row.' : 'Come back tomorrow.'}'
+        : g.lost
+            ? 'Missed today. The word was "${g.word}". New one tomorrow.'
+            : g.guesses.isEmpty
+                ? 'Fill in the blanks. Three wrong letters and it is over.'
+                : 'In progress. ${g.livesLeft} ${g.livesLeft == 1 ? 'life' : 'lives'} left.';
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Panel(
+        padding: EdgeInsets.zero,
+        child: InkWell(
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const HangmanScreen())),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AndyColors.self.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                      g.won
+                          ? Icons.check_circle_rounded
+                          : Icons.extension_rounded,
+                      color: AndyColors.self),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Daily puzzle', style: t.textTheme.titleMedium),
+                      Text(status,
+                          style: t.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant, height: 1.3)),
+                    ],
+                  ),
+                ),
+                if (streak > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Text('$streak 🔥', style: t.textTheme.titleMedium),
+                  ),
+                Icon(Icons.chevron_right_rounded, color: cs.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

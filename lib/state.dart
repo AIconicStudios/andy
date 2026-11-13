@@ -34,6 +34,13 @@ class AppState extends ChangeNotifier {
   List<Memory> memories = []; // newest first
   List<WakeAlarm> alarms = [];
   List<String> savedWords = []; // dictionary bookmarks, oldest first
+
+  // Daily puzzle: letters tried on [puzzleDay], and the run of days solved.
+  String puzzleDay = '';
+  String puzzleGuesses = '';
+  String puzzleLastWin = '';
+  int puzzleStreak = 0;
+  int puzzleBest = 0;
   Set<String> habitDone = {}; // "<dateKey>|<habitId>"
   Map<String, int> mood = {}; // dateKey -> 1..5
   Map<String, int> water = {}; // dateKey -> glasses
@@ -65,6 +72,11 @@ class AppState extends ChangeNotifier {
         memories = list('memories', Memory.fromJson);
         alarms = list('alarms', WakeAlarm.fromJson);
         savedWords = List<String>.from(j['savedWords'] ?? []);
+        puzzleDay = j['puzzleDay'] ?? '';
+        puzzleGuesses = j['puzzleGuesses'] ?? '';
+        puzzleLastWin = j['puzzleLastWin'] ?? '';
+        puzzleStreak = j['puzzleStreak'] ?? 0;
+        puzzleBest = j['puzzleBest'] ?? 0;
         habitDone = Set<String>.from(j['habitDone'] ?? []);
         mood = Map<String, int>.from(j['mood'] ?? {});
         water = Map<String, int>.from(j['water'] ?? {});
@@ -98,6 +110,11 @@ class AppState extends ChangeNotifier {
         'memories': memories.map((e) => e.toJson()).toList(),
         'alarms': alarms.map((e) => e.toJson()).toList(),
         'savedWords': savedWords,
+        'puzzleDay': puzzleDay,
+        'puzzleGuesses': puzzleGuesses,
+        'puzzleLastWin': puzzleLastWin,
+        'puzzleStreak': puzzleStreak,
+        'puzzleBest': puzzleBest,
         'habitDone': habitDone.toList(),
         'mood': mood,
         'water': water,
@@ -302,6 +319,34 @@ class AppState extends ChangeNotifier {
 
   void toggleWord(String word) {
     savedWords.contains(word) ? savedWords.remove(word) : savedWords.add(word);
+    _changed();
+  }
+
+  // ---- daily puzzle ------------------------------------------------------
+
+  /// Letters tried so far today (yesterday's are forgotten).
+  String get puzzleGuessesToday => puzzleDay == _today ? puzzleGuesses : '';
+
+  /// Days solved in a row, counting only a run that is still alive.
+  int get puzzleStreakNow {
+    final yesterday =
+        dk(DateTime.now().subtract(const Duration(days: 1)));
+    return puzzleLastWin == _today || puzzleLastWin == yesterday
+        ? puzzleStreak
+        : 0;
+  }
+
+  /// Stores the letters tried today. [won] and [lost] say how it ended.
+  void recordPuzzle(String guesses, {required bool won, required bool lost}) {
+    puzzleDay = _today;
+    puzzleGuesses = guesses;
+    if (won && puzzleLastWin != _today) {
+      puzzleStreak = puzzleStreakNow + 1;
+      puzzleLastWin = _today;
+      if (puzzleStreak > puzzleBest) puzzleBest = puzzleStreak;
+    } else if (lost) {
+      puzzleStreak = 0;
+    }
     _changed();
   }
 

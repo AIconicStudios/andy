@@ -70,6 +70,15 @@ Definitions come from [WordNet 3.0](https://wordnet.princeton.edu/)
 worth learning and safe for a lock screen, so it runs for about a year and
 a half before repeating.
 
+## Daily puzzle
+
+One fill-in-the-blanks word a day, hangman style, with a dictionary meaning
+as the clue and about a third of the letters filled in. You get three wrong
+letters; the third ends it and shows the answer. Progress is kept for the
+day, solving on consecutive days builds a streak, and the solved word can be
+bookmarked. The answer is never that day's word of the day. Find it under
+the word of the day on the Today tab.
+
 ## Brain alarm
 
 An alarm with no snooze and no off button. Once it rings, the only way to
@@ -108,6 +117,7 @@ The iOS build needs a Mac with Xcode.
 
 - `lib/state.dart` — all data, persistence and the life score
 - `lib/dictionary.dart` — bundled dictionary, search and word of the day
+- `lib/hangman.dart` — daily fill-in-the-blanks puzzle rules
 - `lib/quiz.dart` — random question generator for the brain alarm
 - `lib/alarms.dart` — alarm model and scheduling
 - `lib/memories.dart` — memory model and the matching rules

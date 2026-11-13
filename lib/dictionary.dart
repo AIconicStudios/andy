@@ -138,6 +138,16 @@ class Dictionary {
     return lookup(_daily[n % _daily.length]);
   }
 
+  /// The answer to the daily fill-in-the-blanks puzzle for [day]: taken
+  /// from half a list away, so it is months from being the word of the day.
+  Entry? puzzleWord(DateTime day) {
+    if (_daily.isEmpty) return null;
+    final n =
+        DateTime.utc(day.year, day.month, day.day).millisecondsSinceEpoch ~/
+            Duration.millisecondsPerDay;
+    return lookup(_daily[(n + _daily.length ~/ 2) % _daily.length]);
+  }
+
   /// Word and meaning pairs for vocabulary quiz questions.
   List<(String, String)> get vocabulary => [
         for (final w in _daily)
