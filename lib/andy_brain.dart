@@ -115,7 +115,14 @@ List<Nudge> nudgesFor(AppState s) {
 
   // Movement
   final since = s.daysSinceWorkout;
-  if (since == null) {
+  final steps = s.stepsOn(now);
+  if (s.isTrainDay(now) && !s.trainedToday) {
+    out.add(Nudge(Icons.fitness_center_rounded, AndyColors.move,
+        'Workout day: ${s.upcomingRoutine.name}. About 30 minutes, demos included.', 2));
+  } else if (h >= 18 && steps > 0 && steps < s.stepGoal / 3) {
+    out.add(Nudge(Icons.directions_walk_rounded, AndyColors.move,
+        'Only $steps steps so far. A ten minute walk adds about a thousand.', 2));
+  } else if (since == null) {
     out.add(Nudge(Icons.directions_run_rounded, AndyColors.move,
         'No workouts yet. A ten minute walk is a workout. Go log your first.', 2));
   } else if (since >= 3) {

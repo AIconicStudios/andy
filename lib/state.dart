@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'alarms.dart';
+import 'exercises.dart';
 import 'memories.dart';
 import 'models.dart';
 
@@ -45,6 +46,20 @@ class AppState extends ChangeNotifier {
   String puzzleLastWin = '';
   int puzzleStreak = 0;
   int puzzleBest = 0;
+
+  // Training plan: weekdays (1 = Monday), reminder time, chosen variations.
+  Set<int> trainDays = {1, 3, 5};
+  int trainHour = 18;
+  int trainMinute = 0;
+  Map<String, String> variants = {...defaultVariants};
+  List<SetLog> setLogs = [];
+  String lastRoutine = ''; // id of the last routine finished
+  String lastTrainDay = '';
+
+  // Steps: daily totals, and the phone's raw counter when last read.
+  Map<String, int> steps = {};
+  int stepRaw = -1;
+  int stepGoal = 8000;
   Set<String> habitDone = {}; // "<dateKey>|<habitId>"
   Map<String, int> mood = {}; // dateKey -> 1..5
   Map<String, int> water = {}; // dateKey -> glasses
@@ -85,6 +100,19 @@ class AppState extends ChangeNotifier {
         puzzleLastWin = j['puzzleLastWin'] ?? '';
         puzzleStreak = j['puzzleStreak'] ?? 0;
         puzzleBest = j['puzzleBest'] ?? 0;
+        trainDays = Set<int>.from(j['trainDays'] ?? [1, 3, 5]);
+        trainHour = j['trainHour'] ?? 18;
+        trainMinute = j['trainMinute'] ?? 0;
+        variants = {
+          ...defaultVariants,
+          ...Map<String, String>.from(j['variants'] ?? {}),
+        };
+        setLogs = list('setLogs', SetLog.fromJson);
+        lastRoutine = j['lastRoutine'] ?? '';
+        lastTrainDay = j['lastTrainDay'] ?? '';
+        steps = Map<String, int>.from(j['steps'] ?? {});
+        stepRaw = j['stepRaw'] ?? -1;
+        stepGoal = j['stepGoal'] ?? 8000;
         habitDone = Set<String>.from(j['habitDone'] ?? []);
         mood = Map<String, int>.from(j['mood'] ?? {});
         water = Map<String, int>.from(j['water'] ?? {});
@@ -127,6 +155,16 @@ class AppState extends ChangeNotifier {
         'puzzleLastWin': puzzleLastWin,
         'puzzleStreak': puzzleStreak,
         'puzzleBest': puzzleBest,
+        'trainDays': trainDays.toList()..sort(),
+        'trainHour': trainHour,
+        'trainMinute': trainMinute,
+        'variants': variants,
+        'setLogs': setLogs.map((e) => e.toJson()).toList(),
+        'lastRoutine': lastRoutine,
+        'lastTrainDay': lastTrainDay,
+        'steps': steps,
+        'stepRaw': stepRaw,
+        'stepGoal': stepGoal,
         'habitDone': habitDone.toList(),
         'mood': mood,
         'water': water,
@@ -233,7 +271,7 @@ class AppState extends ChangeNotifier {
   int minutesOn(DateTime d) => workoutsOn(d).fold(0, (a, w) => a + w.minutes);
 
   int burnedOn(DateTime d) =>
-      workoutsOn(d).fold(0, (a, w) => a + w.kcal(weightKg));
+      workoutsOn(d).fold(0, (a, w) => a + w.kcal(weightKg)) + stepKcal(stepsOn(d));
 
   /// The last seven days, oldest first, ending today.
   List<DateTime> get last7 {
@@ -284,6 +322,145 @@ class AppState extends ChangeNotifier {
 
   List<Person> get overduePeople =>
       peopleByDrift.where((p) => p.overdue).toList();
+
+  // ---- training ------------------------------------------------------------
+
+  bool isTrainDay(DateTime d) => trainDays.contains(d.weekday);
+  bool get trainedToday => lastTrainDay == _today;
+
+  /// The routine for the next workout (today's, if it is still to do).
+  Routine get upcomingRoutine =>
+      trainedToday ? routineById(lastRoutine) : nextRoutine(lastRoutine);
+
+  /// The next training day from tomorrow, if any.
+  DateTime? get nextTrainDay {
+    final t = dayOf(DateTime.now());
+    for (var i = 1; i <= 7; i++) {
+      final d = t.add(Duration(days: i));
+      if (isTrainDay(d)) return d;
+    }
+    return null;
+  }
+
+  void setTrainingPlan({Set<int>? days, int? hour, int? minute, int? goal}) {
+    trainDays = days ?? trainDays;
+    trainHour = hour ?? trainHour;
+    trainMinute = minute ?? trainMinute;
+    stepGoal = goal ?? stepGoal;
+    _changed();
+  }
+
+  void setVariant(String slot, String exerciseId) {
+    variants[slot] = exerciseId;
+    _changed();
+  }
+
+  /// Puts [exerciseId] in place of whichever exercise in its ladder is in
+  /// the plan now.
+  void useInPlan(String exerciseId) {
+    for (final e in slotLadders.entries) {
+      if (e.value.contains(exerciseId) &&
+          e.value.contains(variants[e.key])) {
+        variants[e.key] = exerciseId;
+      }
+    }
+    _changed();
+  }
+
+  void logSet(String exerciseId, int amount, Effort effort) {
+    setLogs.add(SetLog(
+        exercise: exerciseId, day: _today, amount: amount, effort: effort));
+    if (setLogs.length > 3000) setLogs.removeRange(0, setLogs.length - 3000);
+    _changed();
+  }
+
+  void undoLastSet(String exerciseId) {
+    final i = setLogs.lastIndexWhere(
+        (l) => l.exercise == exerciseId && l.day == _today);
+    if (i >= 0) setLogs.removeAt(i);
+    _changed();
+  }
+
+  List<SetLog> setsToday(String exerciseId) => setLogs
+      .where((l) => l.exercise == exerciseId && l.day == _today)
+      .toList();
+
+  /// Sets from the most recent earlier day this exercise was done.
+  List<SetLog> lastSession(String exerciseId) {
+    String? day;
+    for (final l in setLogs.reversed) {
+      if (l.exercise == exerciseId && l.day != _today) {
+        day = l.day;
+        break;
+      }
+    }
+    if (day == null) return const [];
+    return setLogs
+        .where((l) => l.exercise == exerciseId && l.day == day)
+        .toList();
+  }
+
+  int? bestSet(String exerciseId) {
+    int? best;
+    for (final l in setLogs) {
+      if (l.exercise == exerciseId && (best == null || l.amount > best)) {
+        best = l.amount;
+      }
+    }
+    return best;
+  }
+
+  /// Records a finished workout as a Bodyweight session for the Move stats.
+  void finishWorkout(String routineId, int minutes) {
+    lastRoutine = routineId;
+    lastTrainDay = _today;
+    workouts.add(Workout(
+        id: newId(),
+        type: 'Bodyweight',
+        minutes: minutes.clamp(1, 240),
+        intensity: 1,
+        time: DateTime.now()));
+    _changed();
+  }
+
+  // ---- steps -----------------------------------------------------------------
+
+  int stepsOn(DateTime d) => steps[dk(d)] ?? 0;
+
+  /// Roughly 0.5 kcal per kilogram per thousand steps.
+  int stepKcal(int count) => (count * weightKg * 0.0005).round();
+
+  DateTime _lastStepSave = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Takes a reading of the phone's step counter, which counts up from the
+  /// last restart. The difference since the previous reading is added to
+  /// today. Steps taken while Andy was closed land on the day it is next
+  /// opened.
+  void recordStepCounter(int raw, {DateTime? now}) {
+    final when = now ?? DateTime.now();
+    if (stepRaw >= 0) {
+      var delta = raw - stepRaw;
+      if (delta < 0) delta = raw; // the phone restarted and began from 0
+      if (delta > 100000) delta = 0; // a glitch, not a walk
+      if (delta > 0) {
+        final key = dk(when);
+        steps[key] = (steps[key] ?? 0) + delta;
+      }
+    }
+    stepRaw = raw;
+    if (steps.length > 120) {
+      final keys = steps.keys.toList()..sort();
+      for (final k in keys.take(steps.length - 120)) {
+        steps.remove(k);
+      }
+    }
+    notifyListeners();
+    // The sensor fires on every step: save at most every 20 seconds.
+    if (when.difference(_lastStepSave).inSeconds >= 20) {
+      _lastStepSave = when;
+      _save();
+    }
+  }
 
   // ---- self --------------------------------------------------------------
 
@@ -475,8 +652,12 @@ class AppState extends ChangeNotifier {
     return 0.5 + 0.5 * fit;
   }
 
-  double get moveScore =>
-      (weekMinutes / weeklyMinutesGoal).clamp(0.0, 1.0).toDouble();
+  /// Workout minutes for the week, with today's steps as a bonus of up to
+  /// 30%, so a day of walking counts even without a workout.
+  double get moveScore => (weekMinutes / weeklyMinutesGoal +
+          0.3 * (stepsOn(DateTime.now()) / stepGoal).clamp(0.0, 1.0))
+      .clamp(0.0, 1.0)
+      .toDouble();
 
   double get peopleScore {
     if (people.isEmpty) return 0;

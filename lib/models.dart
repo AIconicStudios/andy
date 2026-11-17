@@ -58,6 +58,7 @@ const workoutTypes = [
   WorkoutType('HIIT', '🔥', 9.5),
   WorkoutType('Yoga', '🧘', 2.8),
   WorkoutType('Dance', '💃', 5.5),
+  WorkoutType('Bodyweight', '💪', 5.0),
   WorkoutType('Other', '✨', 4.5),
 ];
 

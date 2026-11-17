@@ -46,6 +46,8 @@ dependencies:
   path_provider: ^2.1.6
   tflite_flutter: ^0.12.1
   alarm: ^5.15.0
+  pedometer: ^4.2.0
+  permission_handler: ^13.0.2
 
 dev_dependencies:
   flutter_test:

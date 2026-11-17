@@ -4,6 +4,7 @@ import '../models.dart';
 import '../state.dart';
 import '../theme.dart';
 import '../widgets.dart';
+import 'workout.dart';
 
 class MoveScreen extends StatelessWidget {
   const MoveScreen({super.key});
@@ -31,6 +32,10 @@ class MoveScreen extends StatelessWidget {
               style:
                   t.textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
           const SizedBox(height: 16),
+          const TodayWorkoutCard(),
+          const SectionTitle('Steps'),
+          const StepsCard(),
+          const SectionTitle('This week'),
           Panel(
             child: Row(
               children: [
@@ -74,6 +79,15 @@ class MoveScreen extends StatelessWidget {
               days: s.last7,
               values: s.last7.map(s.minutesOn).toList(),
               color: AndyColors.move,
+            ),
+          ),
+          const SectionTitle('Steps, last 7 days'),
+          Panel(
+            child: WeekBars(
+              days: s.last7,
+              values: s.last7.map(s.stepsOn).toList(),
+              color: AndyColors.self,
+              goal: s.stepGoal,
             ),
           ),
           const SectionTitle('History'),

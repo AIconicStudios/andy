@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'alarms.dart';
 import 'dictionary.dart';
+import 'steps.dart';
 import 'reminders.dart';
 import 'screens/alarms.dart';
 import 'screens/food.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
     dictionary.load(),
   ]);
   state.refresh(); // the dictionary is in: show the word of the day
+  stepService.start(state); // asks for permission on first run
   // Refresh the week of reminders and the alarms on every launch.
   reminders.sync(state);
   await alarmService.sync(state);
@@ -102,11 +104,15 @@ class _ShellState extends State<Shell> {
         child: IndexedStack(
           index: _tab,
           children: [
-            TodayScreen(onGo: _go),
-            const FoodScreen(),
-            const MoveScreen(),
-            const PeopleScreen(),
-            const MeScreen(),
+            // Hidden tabs keep their state but stop animating.
+            for (final (i, tab) in <Widget>[
+              TodayScreen(onGo: _go),
+              const FoodScreen(),
+              const MoveScreen(),
+              const PeopleScreen(),
+              const MeScreen(),
+            ].indexed)
+              TickerMode(enabled: i == _tab, child: tab),
           ],
         ),
       ),

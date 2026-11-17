@@ -8,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'andy_brain.dart';
 import 'dictionary.dart';
+import 'exercises.dart';
 import 'models.dart';
 import 'state.dart';
 
@@ -16,6 +17,7 @@ const reminderCategories = {
   'worth': ('Morning worth reminder', '8:00, every day'),
   'word': ('Word of the day', '9:30, every day'),
   'puzzle': ('Daily puzzle', '11:00, if you have not played'),
+  'workout': ('Workout days', 'At your training time, if not done yet'),
   'food': ('Meal logging', 'Lunch and dinner, if you have not logged'),
   'move': ('Movement', 'Early evening, if you have not moved'),
   'people': ('People', 'The day someone is overdue a message'),
@@ -154,12 +156,35 @@ List<PlannedReminder> planReminders(AppState s, DateTime now,
   }
 
   // If the app goes unopened for a week the schedule runs dry, so say so.
+  // Training days get the routines in turn, starting with the one due next.
+  if (on('workout')) {
+    var routine =
+        s.trainedToday ? nextRoutine(s.lastRoutine) : s.upcomingRoutine;
+    for (var i = 0; i < _days; i++) {
+      final day = today.add(Duration(days: i));
+      if (!s.isTrainDay(day)) continue;
+      if (i == 0 && s.trainedToday) continue;
+      add(i * 10 + 9, day, s.trainHour, s.trainMinute,
+          'Workout day: ${routine.name}',
+          '${routine.blocks.length} exercises, about 30 minutes. Your future self is watching.');
+      routine = nextRoutine(routine.id);
+    }
+  }
+
   if (s.remindersOn) {
     add(99, today.add(const Duration(days: _days)), 9, 0, 'Andy here',
         'I have gone quiet because you have not opened me. Come back. No guilt, just a fresh day.');
   }
+  // The "come back" message is the last thing scheduled, so it must not be
+  // the one cut when the phone's limit is reached.
+  final comeBack = out.where((r) => r.id == 99).toList();
+  out.removeWhere((r) => r.id == 99);
   out.sort((x, y) => x.when.compareTo(y.when));
-  return [...alarms, ...out.take(maxPending - alarms.length)];
+  return [
+    ...alarms,
+    ...comeBack,
+    ...out.take(maxPending - alarms.length - comeBack.length),
+  ];
 }
 
 /// Schedules [planReminders] as local notifications. Everything stays on the

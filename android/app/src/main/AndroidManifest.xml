@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Andy's reminders: show notifications, and restore them after a reboot. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Step counting from the phone's built-in step sensor. -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <!-- Alarms set on a memory should fire at the chosen minute. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
